@@ -168,13 +168,13 @@ while True:
 		else:
 			cv2.putText(frame, "RIGHT", (50, 100), font, 2, (0, 0, 255), 3)
 			
-		#UP AND DOWN GAZE ANGLE
+		#UP AN  DOWN GAZE ANGLE
 		if L_eye_y != -1 and R_eye_y != -1:
 			eye_y = int((L_eye_y + R_eye_y)/2)
 		elif L_eye_y != -1:
 			eye_y = L_eye_y
 		else:
-			eye_y = R_eye_y;
+			eye_y = R_eye_y
 			
 		if eye_y != -1:
 			if eye_y < int(height/2)-10:

@@ -11,6 +11,7 @@ import cv2 as cv
 import math
 import argparse
 from totxt import make_text_file
+import time
 
 #For Sainan and Patricia
 #These are the assumptions we make to get pupilliary distance
@@ -31,15 +32,22 @@ z_distance = 400
 
 #Identify/Detect the face
 def detectAndDisplay(frame):
+
 	#Simplify the image (color isn't really necessary)
 	frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 	#graphical rep of the gray picture
 	frame_gray = cv.equalizeHist(frame_gray)
 	height, width, _ = frame.shape
-    
+
+	start = time.time()
+
     #-- Detect faces
 	faces = face_cascade.detectMultiScale(frame_gray)
-	
+
+	end = time.time()
+	run_time = end - start
+	# print(f"Runtime of the program is {end - start}")
+
 	#instantiations
 	left_eye = None
 	right_eye = None
@@ -48,6 +56,8 @@ def detectAndDisplay(frame):
 	left_yaw = None
 	right_pitch = None
 	right_yaw = None
+
+	has_face = 0
 	
     #Look through each face on the screen
 	for (x,y,w,h) in faces:
@@ -57,6 +67,7 @@ def detectAndDisplay(frame):
         #frame = cv.ellipse(frame, center, (w//2, h//2), 0, 0, 360, (255, 0, 255), 4)
 		faceROI = frame_gray[y:y+h,x:x+w]
 		
+		has_face = 1
         #-- In each face, detect eyes
 		eyes = eyes_cascade.detectMultiScale(faceROI)
 		for (ex,ey,ew,eh) in eyes:
@@ -89,7 +100,7 @@ def detectAndDisplay(frame):
 	
 	#will need to return pupilliary distance and eye locations in the future for binocular vision aspect
 	#but for now, with just the 3D repo, this isn't needed.
-	return left_pitch, left_yaw, right_pitch, right_yaw
+	return left_pitch, left_yaw, right_pitch, right_yaw, run_time, has_face
 
 
 def get_iris_region(eyeROI, face_x, face_y, eye_x, eye_y, frame):
@@ -211,24 +222,38 @@ if not cap.isOpened:
     print('--(!)Error opening video capture')
     exit(0)
     
-
+frame_number = 0
+face_number = 0
 while True:
 	ret, frame = cap.read()
 	if frame is None:
 		print('--(!) No captured frame -- Break!')
 		break
 	
-	LP, LY, RP, RY = detectAndDisplay(frame)
+	start_time = time.time()
+
+	LP, LY, RP, RY, RT, face = detectAndDisplay(frame)
+
+	frame_number += 1
+	if face:
+		face_number += 1
+
+	end_time = time.time()
+	total_runtime = end_time - start_time
     
 	k = cv.waitKey(10)
 	if k == 32: #space bar
 		print("screen taken!")
 		img_name = "captured_tracked_frame/opencv_frame.png"
 		cv.imwrite(img_name, frame)
+		print(f" {face_number} / {frame_number}")
 		#switching left and right eye definitions because original calcs were from screen perspective
 		write_config(round(RP, 2), round(RY, 2), "eye_tracking_config_files/left_eye_config.txt")
 		write_config(round(LP, 2), round(LY, 2), "eye_tracking_config_files/right_eye_config.txt")
 		print("screen saved!")
+		print(f"Runtime of the face detection is {RT}")
+		print(f"Runtime of the pupil detection is {total_runtime}")
+		# print(f" {face_number} / {frame_number}")
 		break
 	elif k == 27: #escape key
 		print("Escape hit, closing...")
